@@ -5,9 +5,19 @@ metadata:
   # namespace: dev
   labels: {app: demo-probe}
 spec:
+  initContainers:
+
+    - name: init-wait-service
+      image: busybox:1.36
+      command: ['sh', '-c', 'until nslookup kubernetes.default; do echo "En attente du DNS..."; sleep 2; done']
+
+    - name: init-create-fichier
+      image: busybox:1.36
+      command: ['sh', '-c', 'echo "Initialisé le $(date)" > /data/init.txt && echo "Fichier créé"']
+
   containers:
     - name: app
-      image: nginx:1.25
+      image: nginx:1.20-alpine
       ports: [{containerPort: 80}]
       resources:
         requests: {cpu: "50m", memory: "64Mi"}
@@ -24,3 +34,24 @@ spec:
         httpGet: {path: /, port: 80}
         periodSeconds: 5
         failureThreshold: 2
+    - name: sidecar-logger
+      image: busybox:1.32
+      command: ['sh', '-c', 'while true; do echo "[LOG] $(date) - app en cours"; sleep 5; done']
+      resources:
+        requests:
+          memory: "32Mi"
+          cpu: "50m"
+        limits:
+          memory: "64Mi"
+          cpu: "100m"
+
+    - name: sidecar-monitoring
+      image: busybox:1.36
+      command: ['sh', '-c', 'while true; do echo "[METRIC] $(date) - check OK"; sleep 10; done']
+      resources:
+        requests:
+          memory: "32Mi"
+          cpu: "50m"
+        limits:
+          memory: "64Mi"
+          cpu: "100m"
