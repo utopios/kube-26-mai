@@ -108,11 +108,11 @@ Créer `02-config/configmap.yaml` avec les clés suivantes :
 
 Créer `02-config/secret.yaml` avec :
 - `POSTGRES_USER` : `postgres`
-- `POSTGRES_PASSWORD` : `v0t1ng-p4ss`
+- `POSTGRES_PASSWORD` : `postgres`
 
 > Les valeurs doivent être encodées en base64 dans le YAML.
 > ```bash
-> echo -n "v0t1ng-p4ss" | base64
+> echo -n "postgres" | base64
 > ```
 
 **Validation :**

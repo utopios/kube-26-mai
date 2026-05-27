@@ -1,0 +1,18 @@
+replicaCount: 3
+
+service:
+  type: ClusterIP
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 256Mi
+
+ingress:
+  enabled: false
+
+metrics:
+  enabled: false
