@@ -253,8 +253,9 @@ Créer `06-vote/vote-ui.yaml` contenant :
 kubectl get deployment vote vote-ui -n voting
 kubectl get pods -n voting -l app=vote -o wide
 kubectl get pods -n voting -l app=vote-ui -o wide
-curl http://localhost:31000
-# Ouvrir dans un navigateur : http://localhost:31000
+curl http://localhost:5000
+kubectl port-forward services/vote-ui -n voting 5000:80
+# Ouvrir dans un navigateur : http://localhost:5000
 ```
 
 > **Question :** Pourquoi le backend `vote` est-il en `ClusterIP` et pas `NodePort` ? Que se passerait-il si on exposait directement le backend ?
