@@ -10,19 +10,33 @@
 # =============================================================================
 set -euo pipefail
 
-export KUBECONFIG=/tmp/kind-kubeconfig
+# Utiliser le KUBECONFIG courant (~/.kube/config par défaut).
+# On peut surcharger : KUBECONFIG=/chemin/perso bash 05-test-networkpolicies.sh
 
 TIMEOUT=5  # secondes pour les tests de connexion
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 echo "======================================================"
 echo " Démo NetworkPolicies — Architecture 3-tiers"
 echo "======================================================"
 
+# Vérifier l'accès au cluster
+if ! kubectl cluster-info >/dev/null 2>&1; then
+  echo "[ERREUR] Impossible de joindre le cluster Kubernetes."
+  echo "         Vérifie ton KUBECONFIG (kubectl config current-context)."
+  exit 1
+fi
+
+# S'assurer que namespaces et applications sont bien déployés (idempotent)
+echo "[INFO] Application des manifests namespaces + apps (si besoin)..."
+kubectl apply -f "${SCRIPT_DIR}/01-namespace-setup.yaml" >/dev/null
+kubectl apply -f "${SCRIPT_DIR}/02-apps.yaml" >/dev/null
+
 # Attendre que tous les pods soient ready
 echo "[INFO] Attente des pods..."
-kubectl wait --for=condition=Ready pods -l app=frontend -n netpol-frontend --timeout=60s 2>/dev/null || true
-kubectl wait --for=condition=Ready pods -l app=backend  -n netpol-backend  --timeout=60s 2>/dev/null || true
-kubectl wait --for=condition=Ready pod/attacker -n default --timeout=60s 2>/dev/null || true
+kubectl wait --for=condition=Ready pods -l app=frontend -n netpol-frontend --timeout=120s 2>/dev/null || true
+kubectl wait --for=condition=Ready pods -l app=backend  -n netpol-backend  --timeout=120s 2>/dev/null || true
+kubectl wait --for=condition=Ready pod/attacker -n default --timeout=120s 2>/dev/null || true
 
 FRONTEND_POD=$(kubectl get pod -n netpol-frontend -l app=frontend -o jsonpath='{.items[0].metadata.name}')
 BACKEND_POD=$(kubectl get pod -n netpol-backend  -l app=backend  -o jsonpath='{.items[0].metadata.name}')
@@ -53,14 +67,14 @@ kubectl exec -n netpol-frontend ${FRONTEND_POD} -- \
 echo ""
 echo "--- Test 3 : attacker → database (attendu AVANT deny: OK) ---"
 kubectl exec -n default ${ATTACKER_POD} -- \
-  nc -zv database.netpol-db.svc.cluster.local 5432 2>&1 \
+  nc -zv -w ${TIMEOUT} database.netpol-db.svc.cluster.local 5432 2>&1 \
   && echo "[OK] Connexion réussie" || echo "[ECHEC] Connexion refusée"
 
 echo ""
 echo "======================================================"
 echo " APPLICATION DU DENY-ALL"
 echo "======================================================"
-kubectl apply -f "$(dirname "$0")/03-deny-all.yaml"
+kubectl apply -f "${SCRIPT_DIR}/03-deny-all.yaml"
 echo "[INFO] Attente 3s pour propagation des policies..."
 sleep 3
 
@@ -85,7 +99,7 @@ echo ""
 echo "======================================================"
 echo " APPLICATION DES RÈGLES SÉLECTIVES"
 echo "======================================================"
-kubectl apply -f "$(dirname "$0")/04-allow-frontend-to-backend.yaml"
+kubectl apply -f "${SCRIPT_DIR}/04-allow-frontend-to-backend.yaml"
 echo "[INFO] Attente 3s pour propagation..."
 sleep 3
 
@@ -109,7 +123,7 @@ kubectl exec -n default ${ATTACKER_POD} -- \
 echo ""
 echo "--- Test 8 : frontend → database DIRECT (attendu: BLOQUÉ) ---"
 kubectl exec -n netpol-frontend ${FRONTEND_POD} -- \
-  nc -zv database.netpol-db.svc.cluster.local 5432 2>&1 \
+  nc -zv -w ${TIMEOUT} database.netpol-db.svc.cluster.local 5432 2>&1 \
   && echo "[ECHEC] Le frontend ne devrait pas accéder directement à la DB !" || echo "[OK] Accès direct DB bloqué"
 
 echo ""
