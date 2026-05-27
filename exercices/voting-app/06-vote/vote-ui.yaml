@@ -1,0 +1,67 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vote-ui
+  namespace: voting
+  labels:
+    app: vote-ui
+spec:
+  type: NodePort
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+      nodePort: 31000
+  selector:
+    app: vote-ui
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vote-ui
+  namespace: voting
+  labels:
+    app: vote-ui
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: vote-ui
+  template:
+    metadata:
+      labels:
+        app: vote-ui
+    spec:
+      containers:
+        - name: vote-ui
+          # NB : l'image mohamed1780/vote-ui est un nginx qui proxifie /api vers
+          # http://vote:5000/ (configuration hardcodee dans nginx.conf).
+          # La variable VOTE_API_URL du TP n'est donc pas utilisee par l'image.
+          image: mohamed1780/vote-ui
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 80
+          env:
+            - name: VOTE_API_URL
+              value: "http://vote:5000"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 15
+            periodSeconds: 10

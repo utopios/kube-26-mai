@@ -1,0 +1,61 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: result-ui
+  namespace: voting
+  labels:
+    app: result-ui
+spec:
+  type: NodePort
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+      nodePort: 31001
+  selector:
+    app: result-ui
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: result-ui
+  namespace: voting
+  labels:
+    app: result-ui
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: result-ui
+  template:
+    metadata:
+      labels:
+        app: result-ui
+    spec:
+      containers:
+        - name: result-ui
+          # NB : l'image mohamed1780/result-ui est un nginx qui proxifie /socket.io
+          # vers http://result:5000/socket.io (hardcode dans nginx.conf).
+          # La variable RESULT_API_URL du TP n'est pas utilisee par l'image.
+          image: mohamed1780/result-ui
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 80
+          env:
+            - name: RESULT_API_URL
+              value: "http://result:5000"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 5
