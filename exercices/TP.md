@@ -254,7 +254,7 @@ kubectl get deployment vote vote-ui -n voting
 kubectl get pods -n voting -l app=vote -o wide
 kubectl get pods -n voting -l app=vote-ui -o wide
 curl http://localhost:5000
-kubectl port-forward services/vote-ui -n voting 5000:80
+kubectl port-forward services/vote-ui -n voting 31000:80
 # Ouvrir dans un navigateur : http://localhost:5000
 ```
 

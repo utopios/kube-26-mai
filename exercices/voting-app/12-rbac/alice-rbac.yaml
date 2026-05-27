@@ -1,0 +1,27 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: voting-reader
+  namespace: voting
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "services", "configmaps", "endpoints"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: dev-alice-binding
+  namespace: voting
+subjects:
+  - kind: User
+    name: dev-alice
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: voting-reader
+  apiGroup: rbac.authorization.k8s.io
