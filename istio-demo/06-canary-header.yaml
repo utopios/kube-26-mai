@@ -1,0 +1,26 @@
+---
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: httpbin-vs
+  namespace: istio-demo
+spec:
+  hosts:
+    - "httpbin.formation.local"
+    - httpbin
+  gateways:
+    - httpbin-gw
+    - mesh
+  http:
+    - match:
+        - headers:
+            x-beta-tester:
+              exact: "true"
+      route:
+        - destination:
+            host: httpbin
+            subset: v2
+    - route:
+        - destination:
+            host: httpbin
+            subset: v1

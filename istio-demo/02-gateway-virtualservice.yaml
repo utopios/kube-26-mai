@@ -1,0 +1,36 @@
+---
+apiVersion: networking.istio.io/v1
+kind: Gateway
+metadata:
+  name: httpbin-gw
+  namespace: istio-demo
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+    - port:
+        number: 80
+        name: http
+        protocol: HTTP
+      hosts:
+        - "httpbin.formation.local"
+---
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: httpbin-vs
+  namespace: istio-demo
+spec:
+  hosts:
+    - "httpbin.formation.local"
+  gateways:
+    - httpbin-gw
+  http:
+    - match:
+        - uri:
+            prefix: /
+      route:
+        - destination:
+            host: httpbin
+            port:
+              number: 8000
